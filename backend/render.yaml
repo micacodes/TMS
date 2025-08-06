@@ -1,0 +1,37 @@
+# This file tells Render how to build and deploy all the services for our application.
+# It's a Blueprint for our entire stack.
+
+services:
+  # 1. The PostgreSQL Database Service
+  - type: db
+    name: task-manager-database
+    # Use 'postgres' as the database engine
+    databaseName: task_manager_db
+    user: mica # You can specify a username
+    plan: free # Use the free instance type
+
+  # 2. The Backend API Service (Node.js/Express)
+  - type: web
+    name: task-manager-api
+    runtime: node
+    # The root directory of our backend within the monorepo
+    rootDir: ./backend
+    # The command to install dependencies
+    buildCommand: bun install
+    # The command to run the server in production
+    startCommand: node src/server.js
+    # Set up the environment variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # This is the most important part for connecting to the database.
+      # It automatically gets the connection string from the 'task-manager-database'
+      # service we defined above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: task-manager-database
+          property: connectionString
+      # You should set your JWT_SECRET as a secret environment variable
+      # in the Render dashboard for better security.
+      - key: JWT_SECRET
+        sync: false # Tells Render not to sync this value from the file
