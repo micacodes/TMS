@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
-//New user reg
 exports.register = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -16,12 +15,13 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const newUserQuery = 'INSERT INTO users (full_name, email, username, password_hash) VALUES (?, ?, ?, ?)';
-    const [result] = await db.query(newUserQuery, [fullName, email, username, password_hash]);
+    // SQL query updated for PostgreSQL placeholders ($1, $2, etc.)
+    const newUserQuery = 'INSERT INTO users (full_name, email, username, password_hash) VALUES ($1, $2, $3, $4) RETURNING id';
+    const { rows } = await db.query(newUserQuery, [fullName, email, username, password_hash]);
 
-    res.status(201).json({ message: 'User registered successfully', userId: result.insertId });
+    res.status(201).json({ message: 'User registered successfully', userId: rows[0].id });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') { // PostgreSQL unique violation error code
       return res.status(409).json({ message: 'Email or username already exists.' });
     }
     console.error(error);
@@ -29,7 +29,6 @@ exports.register = async (req, res) => {
   }
 };
 
-//login
 exports.login = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -39,21 +38,19 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
+    // SQL query updated for PostgreSQL
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (rows.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    const user = users[0];
+    const user = rows[0];
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    //JWT payload
     const payload = { userId: user.id, fullName: user.full_name };
-
-
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
@@ -67,7 +64,6 @@ exports.login = async (req, res) => {
   }
 };
 
-//logout 
 exports.logout = (req, res) => {
   res.status(200).json({ message: 'Logout successful. Please clear your token on the client.' });
 };
