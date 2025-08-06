@@ -1,25 +1,30 @@
+# This is the main configuration file for Netlify.
+# All build-related settings go under the [build] header.
 
 [build]
-  # NEW COMMAND: First, install root dependencies. Then, build the frontend.
+  # 1. Install dependencies from the root package.json (for backend functions).
+  # 2. Navigate into the frontend directory.
+  # 3. Install frontend-specific dependencies.
+  # 4. Build the frontend for production.
   command = "bun install && cd frontend && bun install && bun run build"
   
+  # The location of the final, built website files.
   publish = "frontend/dist"
-  functions = "backend/netlify/functions"
   
   # The location of our backend serverless functions.
+  # This key MUST be inside the [build] block.
   functions = "backend/netlify/functions"
 
-# This is the routing rule for our API.
+# --- Routing Rules ---
+
+# This rule directs all API traffic to our backend function.
 [[redirects]]
-  # Any request that starts with /api/
   from = "/api/*"
-  # Should be handled by our 'api' function.
   to = "/.netlify/functions/api/:splat"
-  # A 200 status makes this a "rewrite" not a "redirect".
   status = 200
 
-# This is the catch-all rule for the React single-page app.
-# It ensures that direct navigation to pages like /dashboard works correctly.
+# This rule is the catch-all for the React single-page app.
+# It ensures direct navigation to pages like /login or /dashboard works.
 [[redirects]]
   from = "/*"
   to = "/index.html"
