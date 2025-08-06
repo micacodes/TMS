@@ -1,0 +1,26 @@
+
+[build]
+  # NEW COMMAND: First, install root dependencies. Then, build the frontend.
+  command = "bun install && cd frontend && bun install && bun run build"
+  
+  publish = "frontend/dist"
+  functions = "backend/netlify/functions"
+  
+  # The location of our backend serverless functions.
+  functions = "backend/netlify/functions"
+
+# This is the routing rule for our API.
+[[redirects]]
+  # Any request that starts with /api/
+  from = "/api/*"
+  # Should be handled by our 'api' function.
+  to = "/.netlify/functions/api/:splat"
+  # A 200 status makes this a "rewrite" not a "redirect".
+  status = 200
+
+# This is the catch-all rule for the React single-page app.
+# It ensures that direct navigation to pages like /dashboard works correctly.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
